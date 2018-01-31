@@ -10,15 +10,10 @@
 
 > Filesystem based locking
 
-This is an implementation in Go of the [CID spec](https://github.com/ipld/cid).
-It is used in `go-ipfs` and related packages to refer to a typed hunk of data.
-
-
 ## Table of Contents
 
 - [Install](#install)
 - [Usage](#usage)
-- [API](#api)
 - [Contribute](#contribute)
 - [License](#license)
 

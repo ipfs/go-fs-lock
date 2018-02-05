@@ -32,7 +32,9 @@ func Locked(confdir, lockFile string) (bool, error) {
 		log.Debugf("File doesn't exist: %s", path.Join(confdir, lockFile))
 		return false, nil
 	}
-	if lk, err := Lock(confdir, lockFile); err != nil {
+
+	lk, err := Lock(confdir, lockFile)
+	if err != nil {
 		// EAGAIN == someone else has the lock
 		if err == syscall.EAGAIN {
 			log.Debugf("Someone else has the lock: %s", path.Join(confdir, lockFile))
@@ -61,11 +63,11 @@ func Locked(confdir, lockFile string) (bool, error) {
 
 		// otherwise, we cant guarantee anything, error out
 		return false, err
-	} else {
-		log.Debugf("No one has a lock")
-		lk.Close()
-		return false, nil
 	}
+
+	log.Debugf("No one has a lock")
+	lk.Close()
+	return false, nil
 }
 
 func isLockCreatePermFail(err error) bool {

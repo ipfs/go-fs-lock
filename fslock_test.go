@@ -21,7 +21,7 @@ func assertLock(t *testing.T, confdir, lockFile string, expected bool) {
 	}
 }
 
-func TestLock_Simple(t *testing.T) {
+func TestLockSimple(t *testing.T) {
 	lockFile := "my-test.lock"
 	confdir := os.TempDir()
 
@@ -59,7 +59,7 @@ func TestLock_Simple(t *testing.T) {
 	assertLock(t, confdir, lockFile, false)
 }
 
-func TestLock_Multiple(t *testing.T) {
+func TestLockMultiple(t *testing.T) {
 	lockFile1 := "test-1.lock"
 	lockFile2 := "test-2.lock"
 	confdir := os.TempDir()

@@ -30,6 +30,6 @@
   "license": "MIT",
   "name": "go-fs-lock",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "0.1.1"
+  "version": "0.1.2"
 }
 

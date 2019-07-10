@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 
-	"github.com/ipfs/go-ipfs-util"
+	util "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	lock "go4.org/lock"
 )
@@ -22,14 +22,14 @@ func errPerm(path string) error {
 
 // Lock creates the lock.
 func Lock(confdir, lockFile string) (io.Closer, error) {
-	return lock.Lock(path.Join(confdir, lockFile))
+	return lock.Lock(filepath.Join(confdir, lockFile))
 }
 
 // Locked checks if there is a lock already set.
 func Locked(confdir, lockFile string) (bool, error) {
 	log.Debugf("Checking lock")
-	if !util.FileExists(path.Join(confdir, lockFile)) {
-		log.Debugf("File doesn't exist: %s", path.Join(confdir, lockFile))
+	if !util.FileExists(filepath.Join(confdir, lockFile)) {
+		log.Debugf("File doesn't exist: %s", filepath.Join(confdir, lockFile))
 		return false, nil
 	}
 
@@ -37,17 +37,17 @@ func Locked(confdir, lockFile string) (bool, error) {
 	if err != nil {
 		// EAGAIN == someone else has the lock
 		if err == syscall.EAGAIN {
-			log.Debugf("Someone else has the lock: %s", path.Join(confdir, lockFile))
+			log.Debugf("Someone else has the lock: %s", filepath.Join(confdir, lockFile))
 			return true, nil
 		}
 		if strings.Contains(err.Error(), "resource temporarily unavailable") {
-			log.Debugf("Can't lock file: %s.\n reason: %s", path.Join(confdir, lockFile), err.Error())
+			log.Debugf("Can't lock file: %s.\n reason: %s", filepath.Join(confdir, lockFile), err.Error())
 			return true, nil
 		}
 
 		// we hold the lock ourselves
 		if strings.Contains(err.Error(), "already locked") {
-			log.Debugf("Lock is already held by us: %s", path.Join(confdir, lockFile))
+			log.Debugf("Lock is already held by us: %s", filepath.Join(confdir, lockFile))
 			return true, nil
 		}
 

@@ -9,8 +9,6 @@ go:
 env:
   global:
     - GOTFLAGS="-race"
-  matrix:
-    - BUILD_DEPTYPE=gx
     - BUILD_DEPTYPE=gomod
 
 

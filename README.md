@@ -10,6 +10,11 @@
 
 > Filesystem based locking
 
+## Lead Maintainer
+
+[Steven Allen](https://github.com/Stebalien)
+
+
 ## Table of Contents
 
 - [Install](#install)

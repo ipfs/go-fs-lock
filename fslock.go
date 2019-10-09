@@ -1,6 +1,7 @@
 package fslock
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -22,7 +23,30 @@ func errPerm(path string) error {
 
 // Lock creates the lock.
 func Lock(confdir, lockFile string) (io.Closer, error) {
-	return lock.Lock(filepath.Join(confdir, lockFile))
+	lk, err := lock.Lock(filepath.Join(confdir, lockFile))
+	if err != nil {
+		// EAGAIN == someone else has the lock
+		if err == syscall.EAGAIN {
+			return lk, errors.New(fmt.Sprintf("Someone else has the lock: %s", filepath.Join(confdir, lockFile)))
+		}
+		if strings.Contains(err.Error(), "resource temporarily unavailable") {
+			return lk, errors.New(fmt.Sprintf("Someone else has the lock: %s", filepath.Join(confdir, lockFile)))
+		}
+
+		// we hold the lock ourselves
+		if strings.Contains(err.Error(), "already locked") {
+			return lk, errors.New(fmt.Sprintf("Lock is already held by us: %s", filepath.Join(confdir, lockFile)))
+		}
+
+		// lock fails on permissions error
+		if os.IsPermission(err) {
+			return lk, errPerm(confdir)
+		}
+		if isLockCreatePermFail(err) {
+			return lk, errPerm(confdir)
+		}
+	}
+	return lk, err
 }
 
 // Locked checks if there is a lock already set.
@@ -35,30 +59,20 @@ func Locked(confdir, lockFile string) (bool, error) {
 
 	lk, err := Lock(confdir, lockFile)
 	if err != nil {
-		// EAGAIN == someone else has the lock
-		if err == syscall.EAGAIN {
-			log.Debugf("Someone else has the lock: %s", filepath.Join(confdir, lockFile))
+		errCase := err.Error()
+		if strings.Contains(errCase, "Lock is already held by us:") {
+			log.Debugf(errCase)
 			return true, nil
 		}
-		if strings.Contains(err.Error(), "resource temporarily unavailable") {
-			log.Debugf("Can't lock file: %s.\n reason: %s", filepath.Join(confdir, lockFile), err.Error())
-			return true, nil
-		}
-
-		// we hold the lock ourselves
-		if strings.Contains(err.Error(), "already locked") {
-			log.Debugf("Lock is already held by us: %s", filepath.Join(confdir, lockFile))
+		if strings.Contains(errCase, "Someone else has the lock:") {
+			log.Debugf(errCase)
 			return true, nil
 		}
 
 		// lock fails on permissions error
-		if os.IsPermission(err) {
-			log.Debugf("Lock fails on permissions error")
-			return false, errPerm(confdir)
-		}
-		if isLockCreatePermFail(err) {
-			log.Debugf("Lock fails on permissions error")
-			return false, errPerm(confdir)
+		if strings.Contains(errCase, "permissions denied") {
+			log.Debugf(errCase)
+			return false, err
 		}
 
 		// otherwise, we cant guarantee anything, error out

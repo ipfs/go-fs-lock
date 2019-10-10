@@ -27,15 +27,15 @@ func Lock(confdir, lockFile string) (io.Closer, error) {
 	if err != nil {
 		// EAGAIN == someone else has the lock
 		if err == syscall.EAGAIN {
-			return lk, errors.New(fmt.Sprintf("Someone else has the lock: %s", filepath.Join(confdir, lockFile)))
+			return lk, fmt.Errorf("Someone else has the lock: %s", filepath.Join(confdir, lockFile))
 		}
 		if strings.Contains(err.Error(), "resource temporarily unavailable") {
-			return lk, errors.New(fmt.Sprintf("Someone else has the lock: %s", filepath.Join(confdir, lockFile)))
+			return lk, fmt.Errorf("Someone else has the lock: %s", filepath.Join(confdir, lockFile))
 		}
 
 		// we hold the lock ourselves
 		if strings.Contains(err.Error(), "already locked") {
-			return lk, errors.New(fmt.Sprintf("Lock is already held by us: %s", filepath.Join(confdir, lockFile)))
+			return lk, fmt.Errorf("Lock is already held by us: %s", filepath.Join(confdir, lockFile))
 		}
 
 		// lock fails on permissions error

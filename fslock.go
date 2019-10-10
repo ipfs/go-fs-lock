@@ -1,7 +1,6 @@
 package fslock
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"

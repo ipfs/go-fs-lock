@@ -1,7 +1,6 @@
 package fslock
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,24 +10,18 @@ import (
 	util "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	lock "go4.org/lock"
+	"golang.org/x/xerrors"
 )
 
 // log is the fsrepo logger
 var log = logging.Logger("lock")
 
-type LockError struct {
-	path string
-	msg  string
-}
+// LockedError is returned as the inner error type when the lock is already
+// taken.
+type LockedError string
 
-type PermError LockError
-
-func (e LockError) Error() string {
-	return fmt.Sprintf("lock %s: %s", e.path, e.msg)
-}
-
-func (e PermError) Error() string {
-	return LockError(e).Error()
+func (e LockedError) Error() string {
+	return string(e)
 }
 
 // Lock creates the lock.
@@ -36,22 +29,33 @@ func Lock(confdir, lockFileName string) (io.Closer, error) {
 	lockFilePath := filepath.Join(confdir, lockFileName)
 	lk, err := lock.Lock(lockFilePath)
 	if err != nil {
-		// EAGAIN == someone else has the lock
-		if err == syscall.EAGAIN {
-			return lk, LockError{lockFilePath, "Someone else has the lock"}
-		}
-		if strings.Contains(err.Error(), "resource temporarily unavailable") {
-			return lk, LockError{lockFilePath, "Someone else has the lock"}
-		}
+		switch {
+		case err == syscall.EAGAIN:
+			// EAGAIN == someone else has the lock
+			fallthrough
+		case strings.Contains(err.Error(), "resource temporarily unavailable"):
+			return lk, &os.PathError{
+				Op:   "lock",
+				Path: lockFilePath,
+				Err:  LockedError("someone else has the lock"),
+			}
+		case strings.Contains(err.Error(), "already locked"):
+			// we hold the lock ourselves
+			return lk, &os.PathError{
+				Op:   "lock",
+				Path: lockFilePath,
+				Err:  LockedError("lock is already held by us"),
+			}
+		case os.IsPermission(err) || isLockCreatePermFail(err):
+			// lock fails on permissions error
 
-		// we hold the lock ourselves
-		if strings.Contains(err.Error(), "already locked") {
-			return lk, LockError{lockFilePath, "Lock is already held by us"}
-		}
-
-		// lock fails on permissions error
-		if os.IsPermission(err) || isLockCreatePermFail(err) {
-			return lk, PermError{confdir, "Permission denied"}
+			// Using a path error like this ensures that
+			// os.IsPermission works on the returned error.
+			return lk, &os.PathError{
+				Op:   "lock",
+				Path: lockFilePath,
+				Err:  os.ErrPermission,
+			}
 		}
 	}
 	return lk, err
@@ -72,16 +76,12 @@ func IsLocked(confdir, lockFile string) (bool, error) {
 		return false, nil
 	}
 
-	switch err.(type) {
-	case LockError:
-		log.Debug(err)
+	log.Debug(err)
+
+	if xerrors.As(err, new(LockedError)) {
 		return true, nil
-	case PermError:
-		log.Debug(err)
-		return false, err
-	default:
-		return false, err
 	}
+	return false, err
 }
 
 func isLockCreatePermFail(err error) bool {

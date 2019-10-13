@@ -1,7 +1,6 @@
 package fslock
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,22 +10,59 @@ import (
 	util "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	lock "go4.org/lock"
+	"golang.org/x/xerrors"
 )
 
 // log is the fsrepo logger
 var log = logging.Logger("lock")
 
-func errPerm(path string) error {
-	return fmt.Errorf("failed to take lock at %s: permission denied", path)
+// LockedError is returned as the inner error type when the lock is already
+// taken.
+type LockedError string
+
+func (e LockedError) Error() string {
+	return string(e)
 }
 
 // Lock creates the lock.
-func Lock(confdir, lockFile string) (io.Closer, error) {
-	return lock.Lock(filepath.Join(confdir, lockFile))
+func Lock(confdir, lockFileName string) (io.Closer, error) {
+	lockFilePath := filepath.Join(confdir, lockFileName)
+	lk, err := lock.Lock(lockFilePath)
+	if err != nil {
+		switch {
+		case err == syscall.EAGAIN:
+			// EAGAIN == someone else has the lock
+			fallthrough
+		case strings.Contains(err.Error(), "resource temporarily unavailable"):
+			return lk, &os.PathError{
+				Op:   "lock",
+				Path: lockFilePath,
+				Err:  LockedError("someone else has the lock"),
+			}
+		case strings.Contains(err.Error(), "already locked"):
+			// we hold the lock ourselves
+			return lk, &os.PathError{
+				Op:   "lock",
+				Path: lockFilePath,
+				Err:  LockedError("lock is already held by us"),
+			}
+		case os.IsPermission(err) || isLockCreatePermFail(err):
+			// lock fails on permissions error
+
+			// Using a path error like this ensures that
+			// os.IsPermission works on the returned error.
+			return lk, &os.PathError{
+				Op:   "lock",
+				Path: lockFilePath,
+				Err:  os.ErrPermission,
+			}
+		}
+	}
+	return lk, err
 }
 
 // Locked checks if there is a lock already set.
-func Locked(confdir, lockFile string) (bool, error) {
+func IsLocked(confdir, lockFile string) (bool, error) {
 	log.Debugf("Checking lock")
 	if !util.FileExists(filepath.Join(confdir, lockFile)) {
 		log.Debugf("File doesn't exist: %s", filepath.Join(confdir, lockFile))
@@ -34,40 +70,18 @@ func Locked(confdir, lockFile string) (bool, error) {
 	}
 
 	lk, err := Lock(confdir, lockFile)
-	if err != nil {
-		// EAGAIN == someone else has the lock
-		if err == syscall.EAGAIN {
-			log.Debugf("Someone else has the lock: %s", filepath.Join(confdir, lockFile))
-			return true, nil
-		}
-		if strings.Contains(err.Error(), "resource temporarily unavailable") {
-			log.Debugf("Can't lock file: %s.\n reason: %s", filepath.Join(confdir, lockFile), err.Error())
-			return true, nil
-		}
-
-		// we hold the lock ourselves
-		if strings.Contains(err.Error(), "already locked") {
-			log.Debugf("Lock is already held by us: %s", filepath.Join(confdir, lockFile))
-			return true, nil
-		}
-
-		// lock fails on permissions error
-		if os.IsPermission(err) {
-			log.Debugf("Lock fails on permissions error")
-			return false, errPerm(confdir)
-		}
-		if isLockCreatePermFail(err) {
-			log.Debugf("Lock fails on permissions error")
-			return false, errPerm(confdir)
-		}
-
-		// otherwise, we cant guarantee anything, error out
-		return false, err
+	if err == nil {
+		log.Debugf("No one has a lock")
+		lk.Close()
+		return false, nil
 	}
 
-	log.Debugf("No one has a lock")
-	lk.Close()
-	return false, nil
+	log.Debug(err)
+
+	if xerrors.As(err, new(LockedError)) {
+		return true, nil
+	}
+	return false, err
 }
 
 func isLockCreatePermFail(err error) bool {

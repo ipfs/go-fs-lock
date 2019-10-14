@@ -11,7 +11,7 @@ import (
 func assertLock(t *testing.T, confdir, lockFile string, expected bool) {
 	t.Helper()
 
-	isLocked, err := lock.IsLocked(confdir, lockFile)
+	isLocked, err := lock.Locked(confdir, lockFile)
 	if err != nil {
 		t.Fatal(err)
 	}

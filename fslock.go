@@ -62,7 +62,7 @@ func Lock(confdir, lockFileName string) (io.Closer, error) {
 }
 
 // Locked checks if there is a lock already set.
-func IsLocked(confdir, lockFile string) (bool, error) {
+func Locked(confdir, lockFile string) (bool, error) {
 	log.Debugf("Checking lock")
 	if !util.FileExists(filepath.Join(confdir, lockFile)) {
 		log.Debugf("File doesn't exist: %s", filepath.Join(confdir, lockFile))

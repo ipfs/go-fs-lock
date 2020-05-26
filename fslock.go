@@ -1,6 +1,7 @@
 package fslock
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -10,7 +11,6 @@ import (
 	util "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	lock "go4.org/lock"
-	"golang.org/x/xerrors"
 )
 
 // log is the fsrepo logger
@@ -78,7 +78,7 @@ func Locked(confdir, lockFile string) (bool, error) {
 
 	log.Debug(err)
 
-	if xerrors.As(err, new(LockedError)) {
+	if errors.As(err, new(LockedError)) {
 		return true, nil
 	}
 	return false, err

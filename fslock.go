@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	util "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
@@ -30,10 +29,7 @@ func Lock(confdir, lockFileName string) (io.Closer, error) {
 	lk, err := lock.Lock(lockFilePath)
 	if err != nil {
 		switch {
-		case err == syscall.EAGAIN:
-			// EAGAIN == someone else has the lock
-			fallthrough
-		case strings.Contains(err.Error(), "resource temporarily unavailable"):
+		case lockedByOthers(err):
 			return lk, &os.PathError{
 				Op:   "lock",
 				Path: lockFilePath,

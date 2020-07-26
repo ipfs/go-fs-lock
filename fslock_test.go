@@ -1,9 +1,14 @@
 package fslock_test
 
 import (
+	"bufio"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
+	"strings"
 	"testing"
+	"time"
 
 	lock "github.com/ipfs/go-fs-lock"
 )
@@ -93,4 +98,64 @@ func TestLockMultiple(t *testing.T) {
 
 	assertLock(t, confdir, lockFile1, false)
 	assertLock(t, confdir, lockFile2, false)
+}
+
+func TestLockedByOthers(t *testing.T) {
+	const (
+		lockedMsg = "locked\n"
+		lockFile  = "my-test.lock"
+		wantErr   = "someone else has the lock"
+	)
+
+	if os.Getenv("GO_WANT_HELPER_PROCESS") == "1" { // child process
+		confdir := os.Args[3]
+		if _, err := lock.Lock(confdir, lockFile); err != nil {
+			t.Fatalf("child lock: %v", err)
+		}
+		os.Stdout.WriteString(lockedMsg)
+		time.Sleep(10 * time.Minute)
+		return
+	}
+
+	confdir, err := ioutil.TempDir("", "go-fs-lock-test")
+	if err != nil {
+		t.Fatalf("creating temporary directory: %v", err)
+	}
+	defer os.RemoveAll(confdir)
+
+	// Execute a child process that locks the file.
+	cmd := exec.Command(os.Args[0], "-test.run=TestLockedByOthers", "--", confdir)
+	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
+	cmd.Stderr = os.Stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatalf("cmd.StdoutPipe: %v", err)
+	}
+	if err = cmd.Start(); err != nil {
+		t.Fatalf("cmd.Start: %v", err)
+	}
+	defer cmd.Process.Kill()
+
+	// Wait for the child to lock the file.
+	b := bufio.NewReader(stdout)
+	line, err := b.ReadString('\n')
+	if err != nil {
+		t.Fatalf("read from child: %v", err)
+	}
+	if got, want := line, lockedMsg; got != want {
+		t.Fatalf("got %q from child; want %q", got, want)
+	}
+
+	// Parent should not be able to lock the file.
+	_, err = lock.Lock(confdir, lockFile)
+	if err == nil {
+		t.Fatalf("parent successfully acquired the lock")
+	}
+	pe, ok := err.(*os.PathError)
+	if !ok {
+		t.Fatalf("wrong error type %T", err)
+	}
+	if got := pe.Error(); !strings.Contains(got, wantErr) {
+		t.Fatalf("error %q does not contain %q", got, wantErr)
+	}
 }

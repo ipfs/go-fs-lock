@@ -3,15 +3,16 @@ package fslock_test
 import (
 	"errors"
 	"fmt"
+	"os"
 
-	"github.com/ipfs/go-fs-lock"
+	fslock "github.com/ipfs/go-fs-lock"
 )
 
 func ExampleLockedError() {
-	_, err := fslock.Lock("/tmp/", "foo.lock")
+	_, err := fslock.Lock(os.TempDir(), "foo.lock")
 	fmt.Println("locked:", errors.As(err, new(fslock.LockedError)))
 
-	_, err = fslock.Lock("/tmp/", "foo.lock")
+	_, err = fslock.Lock(os.TempDir(), "foo.lock")
 	fmt.Println("locked:", errors.As(err, new(fslock.LockedError)))
 	// Output:
 	// locked: false

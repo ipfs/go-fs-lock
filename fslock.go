@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	util "github.com/ipfs/go-ipfs-util"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	lock "go4.org/lock"
 )
 

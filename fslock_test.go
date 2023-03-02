@@ -2,7 +2,6 @@ package fslock_test
 
 import (
 	"bufio"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -117,7 +116,7 @@ func TestLockedByOthers(t *testing.T) {
 		return
 	}
 
-	confdir, err := ioutil.TempDir("", "go-fs-lock-test")
+	confdir, err := os.MkdirTemp("", "go-fs-lock-test")
 	if err != nil {
 		t.Fatalf("creating temporary directory: %v", err)
 	}

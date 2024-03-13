@@ -21,4 +21,5 @@ require (
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 )
 
-go 1.20
+go 1.21
+

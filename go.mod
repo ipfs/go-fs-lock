@@ -4,7 +4,7 @@ require (
 	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-log/v2 v2.3.0
 	go4.org v0.0.0-20200411211856-f5505b9728dd
-	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+	golang.org/x/sys v0.1.0
 )
 
 require (
@@ -18,7 +18,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0 // indirect
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 )
 
 go 1.23

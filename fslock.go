@@ -83,7 +83,8 @@ func Locked(confdir, lockFile string) (bool, error) {
 }
 
 // WaitLock keeps trying to acquire the lock that is held by someone else,
-// until the lock is acquired or until the context is canceled.
+// until the lock is acquired or until the context is canceled. Retires once
+// per second. Logs warning on each retry.
 func WaitLock(ctx context.Context, confdir, lockFileName string) (io.Closer, error) {
 	var ticker *time.Ticker
 

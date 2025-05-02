@@ -91,6 +91,11 @@ retry:
 	if err != nil {
 		var lkErr LockedError
 		if errors.As(err, &lkErr) && lkErr.Error() == "someone else has the lock" {
+			pe, ok := err.(*os.PathError)
+			if !ok {
+				return nil, err
+			}
+			log.Warnf("%s: %s. Retrying...", pe.Path, lkErr.Error())
 			if ticker == nil {
 				ticker = time.NewTicker(time.Second)
 				defer ticker.Stop()

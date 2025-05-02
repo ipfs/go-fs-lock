@@ -9,8 +9,9 @@ import (
 )
 
 func ExampleLockedError() {
-	_, err := fslock.Lock(os.TempDir(), "foo.lock")
+	lockFile, err := fslock.Lock(os.TempDir(), "foo.lock")
 	fmt.Println("locked:", errors.As(err, new(fslock.LockedError)))
+	defer lockFile.Close()
 
 	_, err = fslock.Lock(os.TempDir(), "foo.lock")
 	fmt.Println("locked:", errors.As(err, new(fslock.LockedError)))

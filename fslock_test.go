@@ -6,7 +6,6 @@ import (
 	"errors"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -31,10 +30,7 @@ func assertLock(t *testing.T, confdir, lockFile string, expected bool) {
 
 func TestLockSimple(t *testing.T) {
 	lockFile := "my-test.lock"
-	confdir := os.TempDir()
-
-	// make sure we start clean
-	_ = os.Remove(path.Join(confdir, lockFile))
+	confdir := t.TempDir()
 
 	assertLock(t, confdir, lockFile, false)
 
@@ -70,11 +66,7 @@ func TestLockSimple(t *testing.T) {
 func TestLockMultiple(t *testing.T) {
 	lockFile1 := "test-1.lock"
 	lockFile2 := "test-2.lock"
-	confdir := os.TempDir()
-
-	// make sure we start clean
-	_ = os.Remove(path.Join(confdir, lockFile1))
-	_ = os.Remove(path.Join(confdir, lockFile2))
+	confdir := t.TempDir()
 
 	lock1, err := lock.Lock(confdir, lockFile1)
 	if err != nil {
@@ -120,11 +112,7 @@ func TestLockedByOthers(t *testing.T) {
 		return
 	}
 
-	confdir, err := os.MkdirTemp("", "go-fs-lock-test")
-	if err != nil {
-		t.Fatalf("creating temporary directory: %v", err)
-	}
-	defer os.RemoveAll(confdir)
+	confdir := t.TempDir()
 
 	// Execute a child process that locks the file.
 	cmd := exec.Command(os.Args[0], "-test.run=TestLockedByOthers", "--", confdir)

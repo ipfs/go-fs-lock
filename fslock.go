@@ -1,13 +1,14 @@
 package fslock
 
 import (
+	"context"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	util "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log/v2"
 	lock "go4.org/lock"
 )
@@ -60,7 +61,7 @@ func Lock(confdir, lockFileName string) (io.Closer, error) {
 // Locked checks if there is a lock already set.
 func Locked(confdir, lockFile string) (bool, error) {
 	log.Debugf("Checking lock")
-	if !util.FileExists(filepath.Join(confdir, lockFile)) {
+	if !fileExists(filepath.Join(confdir, lockFile)) {
 		log.Debugf("File doesn't exist: %s", filepath.Join(confdir, lockFile))
 		return false, nil
 	}
@@ -80,7 +81,41 @@ func Locked(confdir, lockFile string) (bool, error) {
 	return false, err
 }
 
+// WaitLock keeps trying to acquire the lock that is held by someone else,
+// until the lock is acquired or until the context is canceled.
+func WaitLock(ctx context.Context, confdir, lockFileName string) (io.Closer, error) {
+	var ticker *time.Ticker
+
+retry:
+	lk, err := Lock(confdir, lockFileName)
+	if err != nil {
+		var lkErr LockedError
+		if errors.As(err, &lkErr) && lkErr.Error() == "someone else has the lock" {
+			if ticker == nil {
+				ticker = time.NewTicker(time.Second)
+				defer ticker.Stop()
+			}
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-ticker.C:
+				goto retry
+			}
+		}
+	}
+	return lk, err
+}
+
 func isLockCreatePermFail(err error) bool {
 	s := err.Error()
 	return strings.Contains(s, "Lock Create of") && strings.Contains(s, "permission denied")
+}
+
+// fileExists check if the file with the given path exits.
+func fileExists(filename string) bool {
+	fi, err := os.Lstat(filename)
+	if fi != nil || (err != nil && !os.IsNotExist(err)) {
+		return true
+	}
+	return false
 }

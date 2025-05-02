@@ -117,7 +117,6 @@ func isLockCreatePermFail(err error) bool {
 	return strings.Contains(s, "Lock Create of") && strings.Contains(s, "permission denied")
 }
 
-// fileExists check if the file with the given path exits.
 func fileExists(filename string) bool {
 	fi, err := os.Lstat(filename)
 	if fi != nil || (err != nil && !errors.Is(err, fs.ErrNotExist)) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,7 +44,7 @@ func Lock(confdir, lockFileName string) (io.Closer, error) {
 				Path: lockFilePath,
 				Err:  LockedError("lock is already held by us"),
 			}
-		case os.IsPermission(err) || isLockCreatePermFail(err):
+		case errors.Is(err, fs.ErrPermission) || isLockCreatePermFail(err):
 			// lock fails on permissions error
 
 			// Using a path error like this ensures that
@@ -119,7 +120,7 @@ func isLockCreatePermFail(err error) bool {
 // fileExists check if the file with the given path exits.
 func fileExists(filename string) bool {
 	fi, err := os.Lstat(filename)
-	if fi != nil || (err != nil && !os.IsNotExist(err)) {
+	if fi != nil || (err != nil && !errors.Is(err, fs.ErrNotExist)) {
 		return true
 	}
 	return false

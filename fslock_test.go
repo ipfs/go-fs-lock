@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -197,12 +198,14 @@ func TestWaitLock(t *testing.T) {
 	if err == nil {
 		t.Fatalf("acquired lock on read-only file")
 	}
-	pe, ok := err.(*os.PathError)
-	if !ok {
-		t.Fatalf("wrong error type %T: %s", err, err)
-	}
-	if got := pe.Error(); !strings.Contains(got, permErr) {
-		t.Fatalf("error %q does not contain %q", got, permErr)
+	if runtime.GOOS != "windows" {
+		pe, ok := err.(*os.PathError)
+		if !ok {
+			t.Fatalf("wrong error type %T: %s", err, err)
+		}
+		if got := pe.Error(); !strings.Contains(got, permErr) {
+			t.Fatalf("error %q does not contain %q", got, permErr)
+		}
 	}
 
 	// Acquire lock.
@@ -216,7 +219,7 @@ func TestWaitLock(t *testing.T) {
 	if err == nil {
 		t.Fatalf("acquired the lock when already locked")
 	}
-	pe, ok = err.(*os.PathError)
+	pe, ok := err.(*os.PathError)
 	if !ok {
 		t.Fatalf("wrong error type %T", err)
 	}

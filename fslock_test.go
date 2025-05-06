@@ -3,7 +3,6 @@ package fslock_test
 import (
 	"bufio"
 	"context"
-	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -158,6 +157,7 @@ func TestWaitLock(t *testing.T) {
 		someFile  = "somefile"
 		permErr   = "permission denied"
 		heldErr   = "lock is already held by us"
+		wantErr   = "someone else has the lock"
 	)
 
 	confdir := t.TempDir()
@@ -259,7 +259,11 @@ func TestWaitLock(t *testing.T) {
 	if err == nil {
 		t.Fatalf("parent successfully acquired the lock")
 	}
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("did not get expected error: %s", context.DeadlineExceeded)
+	pe, ok = err.(*os.PathError)
+	if !ok {
+		t.Fatalf("wrong error type %T", err)
+	}
+	if got := pe.Error(); !strings.Contains(got, wantErr) {
+		t.Fatalf("error %q does not contain %q", got, wantErr)
 	}
 }

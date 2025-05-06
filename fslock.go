@@ -104,7 +104,7 @@ retry:
 			}
 			select {
 			case <-ctx.Done():
-				return nil, ctx.Err()
+				return nil, err
 			case <-ticker.C:
 				goto retry
 			}

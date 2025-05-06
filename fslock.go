@@ -104,7 +104,8 @@ retry:
 			}
 			select {
 			case <-ctx.Done():
-				return nil, ctx.Err()
+				log.Warnf("did not acquire lock: %s", ctx.Err())
+				return nil, err
 			case <-ticker.C:
 				goto retry
 			}

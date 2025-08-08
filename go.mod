@@ -5,7 +5,7 @@ go 1.23.8
 require (
 	github.com/ipfs/go-log/v2 v2.6.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/sys v0.34.0
+	golang.org/x/sys v0.35.0
 )
 
 require (

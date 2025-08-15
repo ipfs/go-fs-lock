@@ -4,16 +4,11 @@
 [![](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](http://ipfs.io/)
 [![](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
 [![](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-[![GoDoc](https://godoc.org/github.com/ipfs/go-fs-lock?status.svg)](https://godoc.org/github.com/ipfs/go-fs-lock)
 [![Coverage Status](https://coveralls.io/repos/github/ipfs/go-fs-lock/badge.svg?branch=master)](https://coveralls.io/github/ipfs/go-fs-lock?branch=master)
-[![Travis CI](https://travis-ci.org/ipfs/go-fs-lock.svg?branch=master)](https://travis-ci.org/ipfs/go-fs-lock)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/ipfs/go-fs-lock/go-test.yml?branch=master)](https://github.com/ipfs/go-fs-lock/actions)
+[![GoDoc](https://pkg.go.dev/badge/github.com/ipfs/go-fs-lock)](https://pkg.go.dev/github.com/ipfs/go-fs-lock)
 
 > Filesystem based locking
-
-## Lead Maintainer
-
-[Steven Allen](https://github.com/Stebalien)
-
 
 ## Table of Contents
 
